@@ -106,6 +106,7 @@ public class TweetToLexiconFeatureVector extends SimpleBatchFilter {
 
 	/** The path of the NRC-emotion lexicon */
 	public static String NRC10_FILE_NAME=LEXICON_FOLDER_NAME+java.io.File.separator+"NRC-emotion-lexicon-wordlevel-v0.92.txt.gz";
+	public static String EMOINT_FILE_NAME=LEXICON_FOLDER_NAME+java.io.File.separator+"emoint_new.txt.gz";
 
 	/** The path of the NRC-10-Expanded lexicon */
 	public static String NRC10_EXPANDED_FILE_NAME=LEXICON_FOLDER_NAME+java.io.File.separator+"w2v-dp-BCC-Lex.csv.gz";
@@ -150,6 +151,7 @@ public class TweetToLexiconFeatureVector extends SimpleBatchFilter {
 
 	/** True for calculating features from the NRC-emotion lexicon */
 	protected boolean useNrc10=true;
+	protected boolean useEmoInt=true;
 
 
 	/** True for calculating features from the NRC-10-Expanded lexicon */
@@ -253,6 +255,11 @@ public class TweetToLexiconFeatureVector extends SimpleBatchFilter {
 				"\t use NRC-10 Emotion Lexicon\n"
 						+ "\t(default:"+this.useNrc10+")", "L", 0, "-L"));
 
+		result.addElement(new Option(
+				"\t use Emotion Intensity Lexicon\n"
+						+ "\t(default:"+this.useEmoInt+")", "Z", 0, "-Z"));
+
+
 
 		result.addElement(new Option(
 				"\t use NRC-10-Expanded Emotion Lexicon\n"
@@ -325,6 +332,10 @@ public class TweetToLexiconFeatureVector extends SimpleBatchFilter {
 
 		if(this.isUseNrc10())
 			result.add("-L");
+
+		if(this.isUseEmoInt())
+			result.add("-Z");
+
 
 
 		if(this.isUseNrc10Expanded())
@@ -455,6 +466,7 @@ public class TweetToLexiconFeatureVector extends SimpleBatchFilter {
 
 
 		this.useNrc10=Utils.getFlag('L', options);
+		this.useEmoInt=Utils.getFlag('Z', options);
 
 
 		this.useNrc10Expanded=Utils.getFlag('N', options);
@@ -583,12 +595,23 @@ public class TweetToLexiconFeatureVector extends SimpleBatchFilter {
 
 		if(this.useNrc10){
 			LexiconEvaluator nrc10Lex = new NRCEmotionLexiconEvaluator(
-					NRC10_FILE_NAME,"NRC-10");
+					NRC10_FILE_NAME,"NRC-10", 1);
 			try {
 				nrc10Lex.processDict();
 				this.lexicons.add(nrc10Lex);
 			} catch (IOException e) {
 				this.useNrc10=false;
+			}
+		}
+
+		if(this.useEmoInt){
+			LexiconEvaluator emoInt = new NRCEmotionLexiconEvaluator(
+					EMOINT_FILE_NAME,"EmoInt", 2);
+			try {
+				emoInt.processDict();
+				this.lexicons.add(emoInt);
+			} catch (IOException e) {
+				this.useEmoInt=false;
 			}
 		}
 
@@ -951,6 +974,10 @@ public class TweetToLexiconFeatureVector extends SimpleBatchFilter {
 		return useNrc10;
 	}
 
+	public boolean isUseEmoInt() {
+		return useEmoInt;
+	}
+
 	/**
 	 * Set the useNrc10 value.
 	 *
@@ -959,6 +986,11 @@ public class TweetToLexiconFeatureVector extends SimpleBatchFilter {
 	public void setUseNrc10(boolean useNrc10) {
 		this.useNrc10 = useNrc10;
 	}
+
+	public void setUseEmoInt(boolean useEmoInt) {
+		this.useEmoInt = useEmoInt;
+	}
+
 
 
 	/**

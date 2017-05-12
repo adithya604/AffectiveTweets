@@ -48,7 +48,8 @@ public class NRCEmotionLexiconEvaluator extends LexiconEvaluator  {
 	private static final long serialVersionUID = 5020983098724465636L;
 
 	/** a mapping between words and the affective scores */
-	protected Map<String, Map<String, Integer>> dict; // each word is mapped to
+	protected Map<String, Map<String, Double>> dict; // each word is mapped to
+	private int x;
 
 
 	/**
@@ -57,21 +58,24 @@ public class NRCEmotionLexiconEvaluator extends LexiconEvaluator  {
 	 * @param path the file with the lexicon
 	 * @param name the prefix for all the attributes calculated from this lexicon
 	 */
-	public NRCEmotionLexiconEvaluator(String path,String name) {
+	public NRCEmotionLexiconEvaluator(String path,String name, int x) {
 		super(path,name);
-		this.dict = new HashMap<String, Map<String, Integer>>();
+		this.dict = new HashMap<String, Map<String, Double>>();
+		this.x = x;
 
 		this.featureNames=new ArrayList<String>();
 		this.featureNames.add(name+"-anger");
-		this.featureNames.add(name+"-anticipation");
-		this.featureNames.add(name+"-disgust");
 		this.featureNames.add(name+"-fear");
 		this.featureNames.add(name+"-joy");
 		this.featureNames.add(name+"-sadness");
-		this.featureNames.add(name+"-surprise");
-		this.featureNames.add(name+"-trust");
-		this.featureNames.add(name+"-negative");
-		this.featureNames.add(name+"-positive");
+		if(x==1) {
+			this.featureNames.add(name + "-anticipation");
+			this.featureNames.add(name + "-disgust");
+			this.featureNames.add(name + "-surprise");
+			this.featureNames.add(name + "-trust");
+			this.featureNames.add(name + "-negative");
+			this.featureNames.add(name + "-positive");
+		}
 
 
 
@@ -82,7 +86,7 @@ public class NRCEmotionLexiconEvaluator extends LexiconEvaluator  {
 	 * 
 	 * @return the dictionary.
 	 */	
-	public Map<String, Map<String, Integer>> getDict() {
+	public Map<String, Map<String, Double>> getDict() {
 		return this.dict;
 	}
 
@@ -92,7 +96,7 @@ public class NRCEmotionLexiconEvaluator extends LexiconEvaluator  {
 	 * @param word the emotion key name
 	 * @return the emotions
 	 */	
-	public Map<String, Integer> getWord(String word) {
+	public Map<String, Double> getWord(String word) {
 		if (this.dict.containsKey(word))
 			return dict.get(word);
 		else
@@ -116,14 +120,14 @@ public class NRCEmotionLexiconEvaluator extends LexiconEvaluator  {
 			String content[] = line.split("\t");
 			String word = content[0];
 			String emotion = content[1];
-			int value = Integer.parseInt(content[2]);
+			Double value = Double.parseDouble(content[2]);
 
 			// I check whether the word has been inserted into the dict
 			if (this.dict.containsKey(word)) {
-				Map<String, Integer> emotionMap = this.dict.get(content[0]);
+				Map<String, Double> emotionMap = this.dict.get(content[0]);
 				emotionMap.put(emotion, value);
 			} else {
-				Map<String, Integer> emotionMap = new HashMap<String, Integer>();
+				Map<String, Double> emotionMap = new HashMap<String, Double>();
 				emotionMap.put(emotion, value);
 				this.dict.put(word, emotionMap);
 			}
@@ -157,31 +161,34 @@ public class NRCEmotionLexiconEvaluator extends LexiconEvaluator  {
 		for (String word : words) {
 			// I retrieve the EmotionMap if the word match the lexicon
 			if (this.getDict().containsKey(word)) {
-				Map<String, Integer> emotions = this.getDict().get(word);
-				anger += emotions.get("anger");
-				anticipation += emotions.get("anticipation");
-				disgust += emotions.get("disgust");
-				fear += emotions.get("fear");
-				joy += emotions.get("joy");
-				sadness += emotions.get("sadness");
-				surprise += emotions.get("surprise");
-				trust += emotions.get("trust");
-				negative += emotions.get("negative");
-				positive += emotions.get("positive");
-
+				Map<String, Double> emotions = this.getDict().get(word);
+				anger += emotions.getOrDefault("anger", 0.0);
+				fear += emotions.getOrDefault("fear", 0.0);
+				joy += emotions.getOrDefault("joy", 0.0);
+				sadness += emotions.getOrDefault("sadness", 0.0);
+				if(this.x == 1) {
+					anticipation += emotions.get("anticipation");
+					disgust += emotions.get("disgust");
+					surprise += emotions.get("surprise");
+					trust += emotions.get("trust");
+					negative += emotions.get("negative");
+					positive += emotions.get("positive");
+				}
 			}
 		}
 
 		emoCount.put(name+"-anger", anger);
-		emoCount.put(name+"-anticipation", anticipation);
-		emoCount.put(name+"-disgust", disgust);
 		emoCount.put(name+"-fear", fear);
 		emoCount.put(name+"-joy", joy);
 		emoCount.put(name+"-sadness", sadness);
-		emoCount.put(name+"-surprise", surprise);
-		emoCount.put(name+"-trust", trust);
-		emoCount.put(name+"-negative", negative);
-		emoCount.put(name+"-positive", positive);
+		if(this.x == 1) {
+			emoCount.put(name + "-anticipation", anticipation);
+			emoCount.put(name + "-disgust", disgust);
+			emoCount.put(name + "-surprise", surprise);
+			emoCount.put(name + "-trust", trust);
+			emoCount.put(name + "-negative", negative);
+			emoCount.put(name + "-positive", positive);
+		}
 
 
 		return emoCount;
