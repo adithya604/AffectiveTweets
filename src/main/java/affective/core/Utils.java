@@ -26,108 +26,84 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.python.core.*;
+import org.python.util.PythonInterpreter;
+
+
 import cmu.arktweetnlp.Twokenize;
 
 
 /**
- *  <!-- globalinfo-start --> 
- *  Provides static functions for String processing.
+ * <!-- globalinfo-start -->
+ * Provides static functions for String processing.
  * <!-- globalinfo-end -->
- * 
- * 
+ *
  * @author Felipe Bravo-Marquez (fjb11@students.waikato.ac.nz)
  * @version $Revision: 1 $
  */
 
 public class Utils {
 
+    public static PythonInterpreter interpreter = new PythonInterpreter();
+    public static PySystemState sys = Py.getSystemState();
 
-	/**
-	 * tokenizes and normalizes the content of a tweet
-	 * @param content the input String
-	 * @param toLowerCase to lowercase the content
-	 * @param cleanTokens normalize URLs, user mentions, and reduce repetitions of letters
-	 * @return a list of tokens
-	 */
-	static public List<String> tokenize(String content,boolean toLowerCase, boolean cleanTokens) {
+    /**
+     * tokenizes and normalizes the content of a tweet
+     *
+     * @param content the input String
+     * @param toLowerCase to lowercase the content
+     * @param cleanTokens normalize URLs, user mentions, and reduce repetitions of letters
+     * @return a list of tokens
+     */
+    static public List<String> tokenize(String content, boolean toLowerCase, boolean cleanTokens) {
+        sys.path.append(new PyString("/deepaffects/miniconda2/envs/tf-py27/lib/python2.7/site-packages/"));
+        interpreter.execfile("/deepaffects/repos/tweetokenize/tokenize.py");
+        interpreter.set("str", content);
+        List<String> result = (List<String>) interpreter.eval("Tokenize().tkn()");
+        return result;
 
-		if(toLowerCase)
-			content=content.toLowerCase();
-
-
-		if(!cleanTokens)
-			return Twokenize.tokenizeRawTweetText(content);
-		else{
-			// if a letters appears two or more times it is replaced by only two
-			// occurrences of it
-			content = content.replaceAll("([a-z])\\1+", "$1$1");
-		}
-
-		List<String> tokens = new ArrayList<String>();
-
-		for (String word : Twokenize.tokenizeRawTweetText(content)) {
-			String cleanWord = word;
+    }
 
 
-			if(cleanTokens){
-				// Replace URLs to a generic URL
-				if (word.matches("http.*|ww\\..*")) {
-					cleanWord = "http://www.url.com";
-				}
+    /**
+     * Adds a negation prefix to the tokens that follow a negation word until the next punctuation mark.
+     *
+     * @param tokens the list of tokens to negate
+     * @param set    the set with the negated words to use
+     * @return the negated tokens
+     */
+    static public List<String> negateTokens(List<String> tokens, Set<String> set) {
+        List<String> negTokens = new ArrayList<String>();
 
-				// Replaces user mentions to a generic user
-				else if (word.matches("@.*")) {
-					cleanWord = "@user";
-				}
+        // flag indicating negation state
+        boolean inNegation = false;
 
+        for (String token : tokens) {
 
-			}
+            // when we find a negation word for the first time
+            if (set.contains(token) && !inNegation) {
+                inNegation = true;
+                negTokens.add(token);
+                continue;
+            }
 
-			tokens.add(cleanWord);
-		}
-		return tokens;
-	}
+            // if we are in a negation context with add a prefix
+            if (inNegation) {
+                negTokens.add("NEGTOKEN-" + token);
+                // the negation context ends whend finding a punctuation match
+                if (token.matches("[\\.|,|:|;|!|\\?]+"))
+                    inNegation = false;
+            } else {
+                negTokens.add(token);
+            }
+        }
+        return negTokens;
 
-
-
-	/** Adds a negation prefix to the tokens that follow a negation word until the next punctuation mark.
-	 * @param tokens the list of tokens to negate
-	 * @param set the set with the negated words to use
-	 * @return the negated tokens 
-	 */  
-	static public List<String> negateTokens(List<String> tokens,Set<String> set) {
-		List<String> negTokens = new ArrayList<String>();
-
-		// flag indicating negation state
-		boolean inNegation=false;
-
-		for(String token:tokens){
-
-			// when we find a negation word for the first time
-			if(set.contains(token) && !inNegation){
-				inNegation=true;		
-				negTokens.add(token);
-				continue;
-			}
-
-			// if we are in a negation context with add a prefix
-			if(inNegation){
-				negTokens.add("NEGTOKEN-"+token);
-				// the negation context ends whend finding a punctuation match
-				if(token.matches("[\\.|,|:|;|!|\\?]+"))
-					inNegation=false;
-			}
-			else{
-				negTokens.add(token);
-			}						
-		}
-		return negTokens;
-
-	}
-
+    }
 
 
 }
+
 
 
 
